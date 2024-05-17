@@ -24,8 +24,14 @@ import (
 )
 
 func main() {
-	baseProjDir := filepath.Dir(".")
-	dbPath := filepath.Join(baseProjDir, "db.db")
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	baseProjDir := os.Getenv("BASE_PROJ_DIR")
+	log.Print(baseProjDir)
+	dbPath := filepath.Join(baseProjDir, "database", "db.db")
 	logPath := filepath.Join(baseProjDir, "bot.log")
 	migraionsDir := filepath.Join(baseProjDir, "internal", "db", "migrations")
 
@@ -39,10 +45,6 @@ func main() {
 	log.Println("Logger activated")
 
 	// read env file
-	err = godotenv.Load(".env")
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// prepare and check logger, db file and apply migrations
 	if err = ensureFileExists(dbPath); err != nil {
@@ -72,6 +74,9 @@ func main() {
 
 	// init bot
 	bot := bot.NewTGBot(os.Getenv("TG_BOT_TOKEN"), service, updater)
+	if bot == nil {
+		log.Fatal("bot nil, the end")
+	}
 
 	timeForUpdate := time.Duration(8 * time.Hour)
 	// start goroutines with update releases and tg-bot

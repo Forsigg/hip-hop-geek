@@ -1,4 +1,4 @@
-name: Remote build App on server
+name: Run tests by pushing in master
 
 on:
   push:

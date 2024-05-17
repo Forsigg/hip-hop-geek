@@ -1,0 +1,44 @@
+name: Run tests and deploy on production
+
+on:
+  push:
+    branches:
+      - production
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
+
+      - name: Install dependencies
+        run: go mod download
+      - name: Build
+        run: go build -v ./cmd/app/main.go
+      - name: Test with the Go CLI
+        run: go test ./internal/...
+
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to production via ssh
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          password: ${{ secrets.PROD_PASSWORD }}
+          port: ${{ secrets.PROD_PORT }}
+          script_stop: true
+          script: |
+            cd /home/${{ secrets.PROD_USERNAME }}/${{ secrets.PROD_PROJECT_DIR }}/
+            git restore .
+            git checkout production
+            git pull
+            docker compose down
+            docker compose build
+            docker compose up -d

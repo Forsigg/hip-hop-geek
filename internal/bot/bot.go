@@ -34,7 +34,6 @@ type UpdaterInterface interface {
 
 type TGBot struct {
 	*tgbotapi.BotAPI
-	// redisClient *redis.Client
 	Service HipHopService
 	Updater UpdaterInterface
 }
@@ -45,19 +44,8 @@ func NewTGBot(botToken string, service HipHopService, updater UpdaterInterface) 
 		log.Fatal(err)
 	}
 
-	// redisPort := os.Getenv("REDIS_PORT")
-	// redisClient := redis.NewClient(&redis.Options{
-	// 	Addr:     fmt.Sprintf("redis:%s", redisPort),
-	// 	Password: "",
-	// 	DB:       0,
-	// })
-	// ctx := context.Background()
-	// if err := redisClient.Ping(ctx).Err(); err != nil {
-	// 	log.Fatalf("error while ping redis: %s", err)
-	// }
 	return &TGBot{
 		bot,
-		// redisClient,
 		service,
 		updater,
 	}
@@ -89,10 +77,15 @@ func (b *TGBot) Start(ctx context.Context, timeout int) {
 
 		// handling all updates
 		case upd := <-updates:
-			// get or create user
+
 			chat := upd.FromChat()
+			if chat == nil {
+				log.Println("user delete bot, skip update")
+				continue
+			}
+
+			log.Printf("chat: %v", chat)
 			user, err := b.Service.GetUserByUsername(chat.UserName)
-			log.Printf("user before handle: %v", user)
 			if err != nil {
 				if err == sqlite.ErrUserNotFound {
 					user = &models.User{
@@ -101,7 +94,6 @@ func (b *TGBot) Start(ctx context.Context, timeout int) {
 						IsTodaySubscribe: false,
 					}
 					err = b.Service.AddUser(*user)
-
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -132,17 +124,8 @@ func (b *TGBot) Start(ctx context.Context, timeout int) {
 
 func (b *TGBot) messageHandler(upd tgbotapi.Update, user *models.User) {
 	adminId, _ := strconv.ParseInt(os.Getenv("ADMIN_ID"), 10, 64)
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Printf("user: %v", user)
-				log.Printf("message: %v", upd.Message)
-				panic(r)
-			}
-		}()
-		deleteUserMsg := tgbotapi.NewDeleteMessage(user.Id, upd.Message.MessageID)
-		b.Send(deleteUserMsg)
-	}()
+	deleteUserMsg := tgbotapi.NewDeleteMessage(user.Id, upd.Message.MessageID)
+	b.Send(deleteUserMsg)
 
 	if upd.Message.IsCommand() {
 		b.commandHandler(upd, user)
