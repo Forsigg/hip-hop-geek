@@ -10,7 +10,7 @@ import (
 
 func main() {
 	fetcher := fetcher.NewHipHopDXFetcher()
-	service := releases.NewHipHopDXService(fetcher)
+	service := releases.NewHipHopService(fetcher)
 	releases := service.GetMonthReleases(2024, time.January, true)
 
 	for _, rel := range releases {

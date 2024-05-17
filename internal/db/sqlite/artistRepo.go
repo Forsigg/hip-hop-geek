@@ -31,6 +31,10 @@ func NewArtistSqliteRepo(db *sqlx.DB) *ArtistSqliteRepo {
 	return &ArtistSqliteRepo{db}
 }
 
+func (a *ArtistSqliteRepo) Close() {
+	a.DB.Close()
+}
+
 func (a *ArtistSqliteRepo) AddArtist(artistName string) (int, error) {
 	res, err := a.DB.Exec(createArtistStmt, artistName)
 	if err != nil {
@@ -85,6 +89,6 @@ func (a *ArtistSqliteRepo) GetArtistById(id int) (*db.ArtistDB, error) {
 	}, nil
 }
 
-func (a *ArtistSqliteRepo) Close() {
+func (a *ArtistSqliteRepo) CloseArtistRepo() {
 	a.DB.Close()
 }

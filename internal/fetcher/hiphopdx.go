@@ -2,6 +2,8 @@ package fetcher
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -19,7 +21,8 @@ type CustomHttpClient interface {
 }
 
 type HipHopDXFetcher struct {
-	Client CustomHttpClient
+	Client     CustomHttpClient
+	currentReq *http.Request
 }
 
 type PostsData struct {
@@ -33,17 +36,35 @@ type ReleaseResponse struct {
 func NewHipHopDXFetcher() *HipHopDXFetcher {
 	return &HipHopDXFetcher{
 		&http.Client{},
+		nil,
 	}
 }
 
-func (h *HipHopDXFetcher) GetSinglesPosts(year int) []models.Post {
+func (f *HipHopDXFetcher) Close() {
+	if f.currentReq != nil {
+		f.currentReq.Body.Close()
+	}
+}
+
+func (f *HipHopDXFetcher) GetSinglesPosts(year int) ([]models.Post, error) {
 	log.Println("start getting singles posts...")
 	posts := make([]models.Post, 0)
 	for page := 1; true; page++ {
-		url := h.buildSinglesUrl(year, 0, 1)
-		resp := h.DoRequest(url)
+		url := f.buildSinglesUrl(year, 0, page)
+		resp, err := f.DoRequest(url)
+		if err != nil {
+			return nil, err
+		}
 
-		respPosts := h.parseResponse(resp)
+		if resp.StatusCode == http.StatusTooManyRequests {
+			log.Println("too many requests, get some sleep (1 min)...")
+			time.Sleep(60 * time.Second)
+			resp, err = f.DoRequest(url)
+			if err != nil {
+				return nil, err
+			}
+		}
+		respPosts := f.parseResponse(resp)
 		if len(respPosts) == 0 {
 			break
 		}
@@ -51,19 +72,31 @@ func (h *HipHopDXFetcher) GetSinglesPosts(year int) []models.Post {
 		posts = append(posts, respPosts...)
 	}
 
-	return posts
+	return posts, nil
 }
 
-func (h *HipHopDXFetcher) GetReleasesPosts(
+func (f *HipHopDXFetcher) GetReleasesPosts(
 	year int,
 	month time.Month,
-) []models.Post {
+) ([]models.Post, error) {
 	posts := make([]models.Post, 0)
 
 	for page := 1; true; page++ {
-		url := h.buildReleasesUrl(year, month, page)
-		resp := h.DoRequest(url)
-		postsBatch := h.parseResponse(resp)
+		url := f.buildReleasesUrl(year, month, page)
+		resp, err := f.DoRequest(url)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode == http.StatusTooManyRequests {
+			log.Println("too many requests, get some sleep (1 min)...")
+			time.Sleep(60 * time.Second)
+			resp, err = f.DoRequest(url)
+			if err != nil {
+				return nil, err
+			}
+		}
+		postsBatch := f.parseResponse(resp)
 
 		if len(postsBatch) == 0 {
 			break
@@ -72,21 +105,23 @@ func (h *HipHopDXFetcher) GetReleasesPosts(
 
 	}
 
-	return posts
+	return posts, nil
 }
 
-func (h *HipHopDXFetcher) parseResponse(resp *http.Response) []models.Post {
+func (f *HipHopDXFetcher) parseResponse(resp *http.Response) []models.Post {
+	defer resp.Body.Close()
 	log.Println("parsing response...")
 	var p ReleaseResponse
 	err := json.NewDecoder(resp.Body).Decode(&p)
 	if err != nil {
-		log.Fatalf("error while parsing response: %s", err)
+		bodyStr, _ := io.ReadAll(resp.Body)
+		log.Fatalf("error while parsing response: %s \njson body: %s", err, bodyStr)
 	}
 
 	return p.Data.Posts
 }
 
-func (h *HipHopDXFetcher) buildReleasesUrl(year int, month time.Month, page int) string {
+func (f *HipHopDXFetcher) buildReleasesUrl(year int, month time.Month, page int) string {
 	queries := map[string][]string{
 		"post_type":      {"release-date"},
 		"posts_per_page": {"99"},
@@ -101,7 +136,7 @@ func (h *HipHopDXFetcher) buildReleasesUrl(year int, month time.Month, page int)
 	return BuildUrl(queries)
 }
 
-func (h *HipHopDXFetcher) buildSinglesUrl(year int, month time.Month, page int) string {
+func (f *HipHopDXFetcher) buildSinglesUrl(year int, month time.Month, page int) string {
 	queries := map[string][]string{
 		"post_type":      {"single"},
 		"posts_per_page": {"100"},
@@ -112,13 +147,16 @@ func (h *HipHopDXFetcher) buildSinglesUrl(year int, month time.Month, page int) 
 	return BuildUrl(queries)
 }
 
-func (h *HipHopDXFetcher) DoRequest(url string) *http.Response {
+func (f *HipHopDXFetcher) DoRequest(url string) (*http.Response, error) {
 	log.Printf("do request to %s", url)
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
-	resp, err := h.Client.Do(req)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	f.currentReq = req
+	resp, err := f.Client.Do(req)
+	f.currentReq = nil
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("error while do request: %w", err)
 	}
 
-	return resp
+	return resp, nil
 }

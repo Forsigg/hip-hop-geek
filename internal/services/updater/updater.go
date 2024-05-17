@@ -1,11 +1,15 @@
 package updater
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"hip-hop-geek/internal/db"
+	"hip-hop-geek/internal/db/sqlite"
 	"hip-hop-geek/internal/models"
 	"hip-hop-geek/pkg/covers"
 )
@@ -18,15 +22,21 @@ var allMonths = []time.Month{
 }
 
 type HipHopService interface {
-	GetMonthReleases(year int, month time.Month, withCover bool) []models.Release
-	GetAllYearReleases(year int, withCover bool) []models.Release
+	FetchReleases(year int) ([]models.Release, error)
+	FetchSingles(year int) ([]models.Release, error)
+
+	GetMonthReleases(year int, month time.Month, limit, offset int) []models.Release
+	GetAllYearReleases(year int, limit, offset int) []models.Release
 	GetAllYearSingles(year int, withCover bool) []models.Release
+
+	Close()
 }
 
 type ReleaseRepositoryInterface interface {
 	AddRelease(release models.Release, artId int) (int, error)
 	GetReleaseById(id int) (*db.ReleaseDB, error)
 	GetReleaseByTitle(title string) (*db.ReleaseDB, error)
+	GetReleasesWithoutCover() ([]*db.ReleaseDB, error)
 	UpdateReleaseCoverUrl(releaseId int, coverUrl string) error
 }
 
@@ -41,38 +51,56 @@ type DbRepository interface {
 	ArtistsRepositoryInterface
 	CreateReleaseWithArtist(release models.Release) (int, error)
 	CreateMultiArtistsAndReleases(releases []models.Release) error
+	UpdateReleaseCoverUrl(releaseId int, coverUrl string) error
+	Close()
 }
 
 type Updater struct {
+	mu sync.Mutex
 	HipHopService
 	DbRepository
 }
 
 func NewUpdater(hipHopService HipHopService, dbRepo DbRepository) *Updater {
 	return &Updater{
+		sync.Mutex{},
 		hipHopService,
 		dbRepo,
 	}
 }
 
-func (u *Updater) StartUploadReleases(timeToUpdate time.Duration, years []int, withCover bool) {
+func (u *Updater) StartUploadReleases(
+	ctx context.Context,
+	timeToUpdate time.Duration,
+	years []int,
+	withCover bool,
+) {
+	log.Println("start updater on timer")
 	ticker := time.NewTicker(timeToUpdate)
 
 	for {
 		select {
 		case <-ticker.C:
-			for _, year := range years {
-				releases := u.GetAllYearReleases(year, withCover)
-				err := u.CreateMultiArtistsAndReleases(releases)
-				if err != nil {
-					log.Fatal(err)
-				}
-			}
-		default:
-			log.Println("i will be wait 1 sec")
-			time.Sleep(1 * time.Second)
+			u.RefreshReleases(years)
+		case <-ctx.Done():
+			u.Close()
 		}
 	}
+}
+
+func (u *Updater) Close() {
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		u.HipHopService.Close()
+	}()
+	go func() {
+		defer wg.Done()
+		u.DbRepository.Close()
+	}()
+
+	wg.Wait()
 }
 
 func (u *Updater) CreateReleasesInDB(releases []models.Release) error {
@@ -82,10 +110,85 @@ func (u *Updater) CreateReleasesInDB(releases []models.Release) error {
 	return nil
 }
 
-func (u *Updater) UpdateCoversInReleases(releases []models.Release) error {
+func (u *Updater) UpdateCoversInDB() error {
+	log.Println("start updating covers...")
+	releases, err := u.GetReleasesWithoutCover()
+	if err != nil {
+		if errors.Is(sqlite.ErrReleasesNotFound, err) {
+			log.Println("all releases with covers, cool")
+			return nil
+		}
+		return err
+	}
+
+	var wg sync.WaitGroup
 	for _, release := range releases {
-		query := fmt.Sprintf("%s - %s", release.Artist, release.Title)
-		cover := covers.NewCoverBook().GetCoverByQuery(query, 500)
-		u.UpdateReleaseCoverUrl(release.Id)
+		wg.Add(1)
+		go func(release *db.ReleaseDB) {
+			defer wg.Done()
+			query := fmt.Sprintf("%s - %s", release.Artist.Name, release.Title)
+			cover := covers.NewCoverBook().GetCoverByQuery(query, 600)
+			if cover.Valid {
+				log.Printf("set new cover for %s", query)
+				err = u.UpdateReleaseCoverUrl(release.Id, cover.Url)
+				if err != nil {
+					log.Printf("error while updating cover for %s: %s", query, err)
+				}
+			}
+		}(release)
+	}
+
+	wg.Wait()
+	log.Println("all covers updated")
+	return nil
+}
+
+func (u *Updater) RefreshReleases(years []int) {
+	log.Println("looking for new releases")
+	for _, year := range years {
+
+		allReleases := make([]models.Release, 0, 10)
+
+		var wg sync.WaitGroup
+		wg.Add(2)
+
+		go func() {
+			log.Println("try to get new releases...")
+			defer wg.Done()
+			newReleases, err := u.FetchReleases(year)
+			if err != nil {
+				log.Fatal(err)
+			}
+			u.mu.Lock()
+			allReleases = append(allReleases, newReleases...)
+			u.mu.Unlock()
+		}()
+
+		go func() {
+			log.Println("try to get new singles...")
+			defer wg.Done()
+			newSingles, err := u.FetchSingles(year)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			u.mu.Lock()
+			allReleases = append(allReleases, newSingles...)
+			u.mu.Unlock()
+		}()
+
+		// waiting and creating all releases in database
+		wg.Wait()
+		err := u.CreateMultiArtistsAndReleases(allReleases)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Println("releases are updated")
+	}
+
+	// update covers after adding releases
+	err := u.UpdateCoversInDB()
+	if err != nil {
+		log.Fatal(err)
 	}
 }

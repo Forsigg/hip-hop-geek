@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"strings"
 
 	"hip-hop-geek/internal/types"
@@ -30,10 +31,17 @@ func (p Post) Artist() string {
 }
 
 func (p Post) Title() string {
-	divider := "-"
+	divider := " - "
 	if strings.Contains(p.QueryField, "–") {
-		divider = "–"
+		divider = " – "
 	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(p.QueryField)
+			panic(r)
+		}
+	}()
 	return strings.TrimPrefix(strings.Split(p.QueryField, divider)[1], " ")
 }
 

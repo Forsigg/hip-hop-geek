@@ -1,6 +1,7 @@
 package covers
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -32,7 +33,7 @@ func (c *CoverBook) GetCoverByQuery(query string, size int) *Cover {
 	}
 
 	sizedUrl := strings.TrimSuffix(coverResp.Results[0].ArtworkUrl, "100x100bb.jpg")
-	sizedUrl += "300x300.jpg"
+	sizedUrl += fmt.Sprintf("%dx%d.jpg", size, size)
 	return &Cover{
 		Url:   sizedUrl,
 		Valid: true,

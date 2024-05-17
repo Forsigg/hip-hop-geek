@@ -8,11 +8,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"hip-hop-geek/internal/models"
 	"hip-hop-geek/internal/types"
 )
 
 var isRequestDo = false
+
+const emptyTestJson = `
+    {
+		"data": {
+		    "posts": []
+		}
+	}`
 
 const testJson = `{
                 "data": {
@@ -26,22 +35,21 @@ const testJson = `{
                 }
             }`
 
-type StubHttpClient struct{}
+type StubHttpClient struct {
+	respBodyFull  string
+	respBodyEmpty string
+}
 
 func (s *StubHttpClient) Do(req *http.Request) (*http.Response, error) {
 	log.Println("do mock request...")
 	if isRequestDo {
 		resp := httptest.NewRecorder()
-		resp.Body.Write([]byte(`{
-            "data": {
-                "posts": []
-            }
-        }`))
+		resp.Body.Write([]byte(s.respBodyEmpty))
 		return resp.Result(), nil
 	} else {
 
 		resp := httptest.NewRecorder()
-		resp.Body.Write([]byte(testJson))
+		resp.Body.Write([]byte(s.respBodyFull))
 		isRequestDo = true
 
 		return resp.Result(), nil
@@ -50,7 +58,10 @@ func (s *StubHttpClient) Do(req *http.Request) (*http.Response, error) {
 
 func TestGetSinglesPosts(t *testing.T) {
 	fetcher := HipHopDXFetcher{
-		Client: &StubHttpClient{},
+		Client: &StubHttpClient{
+			respBodyEmpty: emptyTestJson,
+			respBodyFull:  testJson,
+		},
 	}
 
 	isRequestDo = false
@@ -63,7 +74,8 @@ func TestGetSinglesPosts(t *testing.T) {
 			),
 		}
 
-		got := fetcher.GetSinglesPosts(2024)
+		got, err := fetcher.GetSinglesPosts(2024)
+		assert.NoError(t, err)
 
 		if !reflect.DeepEqual(got, expected) {
 			t.Errorf("incorrect posts: want %v, got %v", expected, got)
@@ -73,7 +85,10 @@ func TestGetSinglesPosts(t *testing.T) {
 
 func TestReleasesPosts(t *testing.T) {
 	fetcher := HipHopDXFetcher{
-		Client: &StubHttpClient{},
+		Client: &StubHttpClient{
+			respBodyEmpty: emptyTestJson,
+			respBodyFull:  testJson,
+		},
 	}
 
 	isRequestDo = false
@@ -86,7 +101,8 @@ func TestReleasesPosts(t *testing.T) {
 			),
 		}
 
-		got := fetcher.GetReleasesPosts(2024, time.January)
+		got, err := fetcher.GetReleasesPosts(2024, time.January)
+		assert.NoError(t, err)
 
 		if !reflect.DeepEqual(got, expected) {
 			t.Errorf("incorrect posts: want %v, got %v", expected, got)
@@ -96,7 +112,11 @@ func TestReleasesPosts(t *testing.T) {
 
 func TestBuildReleaseUrl(t *testing.T) {
 	fetcher := HipHopDXFetcher{
-		&StubHttpClient{},
+		Client: &StubHttpClient{
+			respBodyEmpty: emptyTestJson,
+			respBodyFull:  testJson,
+		},
+		currentReq: nil,
 	}
 	cases := []struct {
 		name     string
@@ -130,7 +150,11 @@ func TestBuildReleaseUrl(t *testing.T) {
 
 func TestBuildSinglesUrl(t *testing.T) {
 	fetcher := HipHopDXFetcher{
-		&StubHttpClient{},
+		Client: &StubHttpClient{
+			respBodyEmpty: emptyTestJson,
+			respBodyFull:  testJson,
+		},
+		currentReq: nil,
 	}
 	cases := []struct {
 		name     string
@@ -165,7 +189,11 @@ func TestBuildSinglesUrl(t *testing.T) {
 
 func TestParseResponse(t *testing.T) {
 	fetcher := HipHopDXFetcher{
-		&StubHttpClient{},
+		Client: &StubHttpClient{
+			respBodyEmpty: emptyTestJson,
+			respBodyFull:  testJson,
+		},
+		currentReq: nil,
 	}
 	cases := []struct {
 		name     string

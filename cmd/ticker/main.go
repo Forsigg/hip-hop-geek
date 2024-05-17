@@ -1,7 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -15,14 +19,22 @@ import (
 
 func main() {
 	fetcher := fetcher.NewHipHopDXFetcher()
-	service := releases.NewHipHopDXService(fetcher)
+	service := releases.NewHipHopService(fetcher)
 	db := sqlx.MustOpen("sqlite3", "./internal/db/db.db")
 	repo := sqlite.NewSqliteRepository(db)
 	updater := updater.NewUpdater(service, repo)
 
-	ch := make(chan struct{})
-	go updater.StartUploadReleases(10*time.Second, []int{2023, 2024}, true)
+	sigCh := make(chan os.Signal, 1)
 
-	x := <-ch
-	log.Println(x)
+	ctx, cancel := context.WithCancel(context.Background())
+	go updater.StartUploadReleases(ctx, 10*time.Second, []int{2023, 2024}, false)
+
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	<-sigCh
+	log.Println("cancelling...")
+	cancel()
+	log.Println("all closed, stop program")
+	// x := <-ch
+	// log.Println(x)
 }

@@ -7,3 +7,7 @@
 *.dylib
 
 *.out
+
+.env
+cover.html
+*.log

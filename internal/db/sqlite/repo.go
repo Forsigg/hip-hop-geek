@@ -15,13 +15,20 @@ import (
 type SqliteRepository struct {
 	db.ArtistsRepositoryInterface
 	db.ReleaseRepositoryInterface
+	db.UsersRepositoryInterface
 }
 
 func NewSqliteRepository(db *sqlx.DB) *SqliteRepository {
 	return &SqliteRepository{
 		NewArtistSqliteRepo(db),
 		NewReleaseSqliteRepo(db),
+		NewUserSqliteRepo(db),
 	}
+}
+
+func (s *SqliteRepository) Close() {
+	s.CloseArtistRepo()
+	s.CloseReleaseRepo()
 }
 
 func (s *SqliteRepository) CreateReleaseWithArtist(release models.Release) (int, error) {
@@ -78,12 +85,12 @@ func (s *SqliteRepository) CreateMultiArtistsAndReleases(releases []models.Relea
 
 	for artistId, releasesArr := range artistIdToReleaseMap {
 		for _, release := range releasesArr {
-			log.Printf("inserting release %s - %s", release.Artist.Name, release.Title)
 			_, err := s.AddRelease(release, artistId)
 			if err != nil {
 				if errors.Is(err, ErrReleaseAlreadyExists) {
 					continue
 				}
+				log.Printf("inserted release %s - %s", release.Artist.Name, release.Title)
 				return err
 			}
 		}

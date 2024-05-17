@@ -9,6 +9,7 @@ type ReleaseDB struct {
 	Id       int
 	Artist   ArtistDB
 	Title    string
+	Type     int
 	OutYear  int
 	OutMonth int
 	OutDay   int
