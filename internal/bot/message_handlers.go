@@ -184,9 +184,6 @@ func (b *TGBot) TodayReleasesHandler(user *models.User, releases []models.Releas
 	if user.TodayReleasesPageCount == 0 {
 		needNewMessage = true
 	}
-	log.Println(user.TodayReleasesMessageId)
-	log.Println(user.TodayReleasesPageCount)
-
 	pageCount := user.TodayReleasesPageCount
 
 	if needNewMessage {
