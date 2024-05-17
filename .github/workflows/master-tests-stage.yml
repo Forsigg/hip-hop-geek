@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -14,9 +14,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ''
-          with:
-            go-version: '1.22.2'
+          go-version: '1.22.x'
 
       - name: Install dependencies
         run: go get .
