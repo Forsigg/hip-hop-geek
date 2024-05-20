@@ -21,6 +21,7 @@ import (
 	"hip-hop-geek/internal/fetcher"
 	"hip-hop-geek/internal/services/releases"
 	"hip-hop-geek/internal/services/updater"
+	"hip-hop-geek/internal/utils"
 )
 
 func main() {
@@ -47,7 +48,7 @@ func main() {
 	// read env file
 
 	// prepare and check logger, db file and apply migrations
-	if err = ensureFileExists(dbPath); err != nil {
+	if err = utils.EnsureFileExistsAndCreate(dbPath); err != nil {
 		log.Fatal(err)
 	}
 
@@ -93,32 +94,6 @@ func main() {
 	cancel()
 	log.Println("bot stopped")
 	logFile.Close()
-}
-
-// ensureFileExists проверяет существование директории и файла, и создает их, если они не существуют.
-func ensureFileExists(path string) error {
-	// Получаем путь к директории
-	dir := filepath.Dir(path)
-
-	// Проверяем существование директории
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		// Создаем директорию, если её нет
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			return fmt.Errorf("не удалось создать директорию: %v", err)
-		}
-	}
-
-	// Проверяем существование файла
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		// Создаем файл, если его нет
-		file, err := os.Create(path)
-		if err != nil {
-			return fmt.Errorf("не удалось создать файл: %v", err)
-		}
-		defer file.Close()
-	}
-
-	return nil
 }
 
 // migrationDBUp выполняет миграции базы данных SQLite с использованием goose.
