@@ -6,4 +6,5 @@ services:
     build: .
     volumes:
       - ./database:/app/database/
+      - ./logs:/app/logs/
 

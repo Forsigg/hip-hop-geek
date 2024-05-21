@@ -33,7 +33,7 @@ func main() {
 	baseProjDir := os.Getenv("BASE_PROJ_DIR")
 	log.Print(baseProjDir)
 	dbPath := filepath.Join(baseProjDir, "database", "db.db")
-	logPath := filepath.Join(baseProjDir, "bot.log")
+	logPath := filepath.Join(baseProjDir, "logs", "bot.log")
 	migraionsDir := filepath.Join(baseProjDir, "internal", "db", "migrations")
 
 	logFile, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666)
