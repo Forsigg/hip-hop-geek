@@ -62,7 +62,7 @@ func (b *TGBot) Start(ctx context.Context, timeout int) {
 	go func() {
 		loc, _ := time.LoadLocation("Asia/Tomsk")
 		now := time.Now().In(loc)
-		next := time.Date(now.Year(), now.Month(), now.Day(), 9, 0, 0, 0, loc)
+		next := time.Date(now.Year(), now.Month(), now.Day(), 18, 0, 0, 0, loc)
 		if now.After(next) {
 			next = next.Add(24 * time.Hour)
 		}
