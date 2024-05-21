@@ -40,5 +40,6 @@ jobs:
             git checkout production
             git pull
             docker compose down
+            docker system prune
             docker compose build
             docker compose up -d
