@@ -74,14 +74,18 @@ func (b *TGBot) ReleasesHandler(upd tgbotapi.Update, user *models.User) {
 
 func (b *TGBot) TodayEventHandler(chatId int64) {
 	msg := tgbotapi.NewPhoto(chatId, nil)
-	event, err := b.Service.GetTodayEvent()
+	events, err := b.Service.GetTodayEvents()
 	if err != nil {
 		b.mustSend(tgbotapi.NewMessage(int64(chatId), ErrorUserMessage))
 	}
-	msg.File = tgbotapi.FileURL(event.Url)
-	msg.Caption = fmt.Sprintf("%s\n%s", "Today in Hip Hop Hisory:", event.Text)
 
-	b.mustSend(msg)
+	for _, event := range events {
+		msg.File = tgbotapi.FileURL(event.Url)
+		msg.Caption = fmt.Sprintf("%s\n%s", "Today in Hip Hop Hisory:", event.Text)
+
+		b.mustSend(msg)
+
+	}
 }
 
 func (b *TGBot) echoMessage(upd tgbotapi.Update) {

@@ -18,7 +18,7 @@ type CoverBook interface {
 }
 
 type EventsFetcher interface {
-	GetTodayEvent() (*models.TodayPost, error)
+	GetTodayEvents() ([]*models.TodayPost, error)
 	Close()
 }
 
@@ -63,8 +63,8 @@ func (h *HipHopService) Close() {
 // 	return h.Repo.SetTodaySubscribe(user, isSubscribe)
 // }
 
-func (h *HipHopService) GetTodayEvent() (*models.TodayPost, error) {
-	return h.EventsFetcher.GetTodayEvent()
+func (h *HipHopService) GetTodayEvents() ([]*models.TodayPost, error) {
+	return h.EventsFetcher.GetTodayEvents()
 }
 
 func (h *HipHopService) FetchReleases(year int) ([]models.Release, error) {

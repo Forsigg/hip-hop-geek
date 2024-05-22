@@ -2,11 +2,11 @@ package fetcher
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 
@@ -18,11 +18,18 @@ const (
 
 	aClassMediaPhotoImageSelector = ".post_media_photo_anchor"
 	divClassText                  = "div.caption"
+	divPostSelector               = "div.post"
+	dateLinkSelector              = "div.date>a"
+
+	dateLayout = "Jan. 02 2006"
+
+	twoDaysMinutes = float64((60 * 24) * 2)
 )
 
 var (
 	ErrImageUrlNotFound = errors.New("image url not found")
 	ErrTextPostNotFound = errors.New("text post not found")
+	ErrPostsNotFound    = errors.New("posts now found")
 )
 
 type TodayHipHopFetcher struct {
@@ -43,10 +50,10 @@ func (f *TodayHipHopFetcher) Close() {
 	}
 }
 
-func (f *TodayHipHopFetcher) GetTodayEvent() (*models.TodayPost, error) {
+func (f *TodayHipHopFetcher) GetTodayEvents() ([]*models.TodayPost, error) {
 	htmlBody := f.getHTML()
 	doc := f.parseResponse(htmlBody)
-	post, err := f.getPostFromDoc(doc)
+	post, err := f.getPostFromDoc(doc, time.Now().UTC())
 
 	return post, err
 }
@@ -76,40 +83,47 @@ func (f *TodayHipHopFetcher) parseResponse(htmlBody io.ReadCloser) *goquery.Docu
 	return doc
 }
 
-func (f *TodayHipHopFetcher) getImageUrl(doc *goquery.Document) (string, error) {
-	node := doc.Find(aClassMediaPhotoImageSelector).First()
-	val, exists := node.Attr("data-big-photo")
-	if exists {
-		return val, nil
+func (f *TodayHipHopFetcher) getPostFromDoc(
+	doc *goquery.Document,
+	now time.Time,
+) ([]*models.TodayPost, error) {
+	if time.Now().UTC().Sub(now).Minutes() > twoDaysMinutes {
+		return nil, ErrPostsNotFound
 	}
 
-	return "", ErrImageUrlNotFound
-}
+	var posts []*models.TodayPost
+	doc.Find(divPostSelector).Each(func(i int, s *goquery.Selection) {
+		date := s.Find(dateLinkSelector).Text()
+		tt, err := time.Parse(dateLayout, date)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-func (f *TodayHipHopFetcher) getEventText(doc *goquery.Document) (string, error) {
-	node := doc.Find(divClassText).First()
-	text := node.Find("p").Text()
-	if text == "" {
-		return "", ErrTextPostNotFound
+		if tt.Month() == now.Month() && tt.Day() == now.Day() && tt.Year() == now.Year() {
+			text := s.Find(divClassText).Find("p").Text()
+			text = strings.TrimPrefix(text, "Today in Hip Hop History:")
+			image, _ := s.Find(aClassMediaPhotoImageSelector).Attr("data-big-photo")
+
+			posts = append(posts, &models.TodayPost{
+				Text: text,
+				Url:  image,
+			})
+		}
+	})
+
+	if len(posts) == 0 {
+		newDate := time.Date(
+			now.Year(),
+			now.Month(),
+			now.Day()-1,
+			0,
+			0,
+			0,
+			0,
+			now.Location(),
+		)
+		return f.getPostFromDoc(doc, newDate)
 	}
 
-	text = strings.TrimPrefix(text, "Today in Hip Hop History:")
-	return text, nil
-}
-
-func (f *TodayHipHopFetcher) getPostFromDoc(doc *goquery.Document) (*models.TodayPost, error) {
-	imageUrl, err := f.getImageUrl(doc)
-	if err != nil {
-		return nil, fmt.Errorf("error while getting image url: %w", err)
-	}
-
-	postText, err := f.getEventText(doc)
-	if err != nil {
-		return nil, fmt.Errorf("error while getting post text: %w", err)
-	}
-
-	return &models.TodayPost{
-		Text: postText,
-		Url:  imageUrl,
-	}, nil
+	return posts, nil
 }

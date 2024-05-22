@@ -17,7 +17,7 @@ type HipHopService interface {
 	GetMonthReleases(year int, month time.Month, limit, offset int) []models.Release
 	GetAllYearReleases(year, limit, offset int) []models.Release
 	GetAllYearSingles(year int, withCover bool) []models.Release
-	GetTodayEvent() (*models.TodayPost, error)
+	GetTodayEvents() ([]*models.TodayPost, error)
 	GetReleasesByDay(year int, month time.Month, day, limit, offset int) []models.Release
 	AddUser(user models.User) error
 	GetUserByUsername(username string) (*models.User, error)
