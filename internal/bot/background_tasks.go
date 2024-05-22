@@ -12,7 +12,8 @@ func (b *TGBot) SendEventAndReleasesEveryday(ctx context.Context) {
 	loc, _ := time.LoadLocation("Asia/Tomsk")
 	now := time.Now().In(loc)
 	send_hour, _ := strconv.Atoi(os.Getenv("SEND_SUBS_HOUR"))
-	next := time.Date(now.Year(), now.Month(), now.Day(), send_hour, 0, 0, 0, loc)
+	send_minute, _ := strconv.Atoi(os.Getenv("SEND_SUBS_MINUTE"))
+	next := time.Date(now.Year(), now.Month(), now.Day(), send_hour, send_minute, 0, 0, loc)
 	if now.After(next) {
 		next = next.Add(24 * time.Hour)
 	}
