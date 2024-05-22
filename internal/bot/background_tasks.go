@@ -9,11 +9,10 @@ import (
 )
 
 func (b *TGBot) SendEventAndReleasesEveryday(ctx context.Context) {
-	loc, _ := time.LoadLocation("Asia/Tomsk")
-	now := time.Now().In(loc)
+	now := time.Now().UTC()
 	send_hour, _ := strconv.Atoi(os.Getenv("SEND_SUBS_HOUR"))
 	send_minute, _ := strconv.Atoi(os.Getenv("SEND_SUBS_MINUTE"))
-	next := time.Date(now.Year(), now.Month(), now.Day(), send_hour, send_minute, 0, 0, loc)
+	next := time.Date(now.Year(), now.Month(), now.Day(), send_hour, send_minute, 0, 0, now.Location())
 	if now.After(next) {
 		next = next.Add(24 * time.Hour)
 	}
