@@ -31,7 +31,6 @@ func main() {
 	}
 
 	baseProjDir := os.Getenv("BASE_PROJ_DIR")
-	log.Print(baseProjDir)
 	dbPath := filepath.Join(baseProjDir, "database", "db.db")
 	logPath := filepath.Join(baseProjDir, "logs", "bot.log")
 	migraionsDir := filepath.Join(baseProjDir, "internal", "db", "migrations")
@@ -44,8 +43,6 @@ func main() {
 	wrt := io.MultiWriter(os.Stdout, logFile)
 	log.SetOutput(wrt)
 	log.Println("Logger activated")
-
-	// read env file
 
 	// prepare and check logger, db file and apply migrations
 	if err = utils.EnsureFileExistsAndCreate(dbPath); err != nil {
