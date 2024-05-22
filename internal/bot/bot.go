@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"sync"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -59,37 +58,7 @@ func (b *TGBot) Start(ctx context.Context, timeout int) {
 	updates := b.GetUpdatesChan(updatesConfig)
 
 	// ticker for subs goroutine
-	go func() {
-		loc, _ := time.LoadLocation("Asia/Tomsk")
-		now := time.Now().In(loc)
-		next := time.Date(now.Year(), now.Month(), now.Day(), 18, 0, 0, 0, loc)
-		if now.After(next) {
-			next = next.Add(24 * time.Hour)
-		}
-		time.Sleep(time.Until(next))
-
-		ticker := time.NewTicker(24 * time.Hour)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				log.Println("bot timer goroutine closing...")
-				return
-
-			// sending message to subscribers every $DURATION
-			case <-ticker.C:
-				var wg sync.WaitGroup
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					b.SendTodayEventToSubscribers()
-					b.SendTodayReleasesToSubscribers()
-				}()
-				wg.Wait()
-			}
-		}
-	}()
+	go b.SendEventAndReleasesEveryday(ctx)
 
 	for {
 		select {
@@ -106,7 +75,6 @@ func (b *TGBot) Start(ctx context.Context, timeout int) {
 				continue
 			}
 
-			log.Printf("chat: %v", chat)
 			user, err := b.Service.GetUserByUsername(chat.UserName)
 			if err != nil {
 				if err == sqlite.ErrUserNotFound {

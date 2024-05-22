@@ -47,6 +47,7 @@ const (
 	getAllSubscribersQuery = `
     SELECT id, username, today_subscribe, releases_message_id,
     releases_page_count, today_releases_message_id, today_releases_page_count
+    FROM users
     WHERE today_subscribe = true;
     `
 )

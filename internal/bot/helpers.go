@@ -72,7 +72,6 @@ func GenerateReleasesMessage(
 	}
 
 	photoMsg := tgbotapi.NewPhoto(userId, tgbotapi.FileURL(photoUrl))
-	// photoMsg := tgbotapi.NewInputMediaPhoto(tgbotapi.FileURL(photoUrl))
 	photoMsg.Caption = strings.Join(caption, "\n\n")
 	photoMsg.ParseMode = tgbotapi.ModeHTML
 	photoMsg.ReplyMarkup = inlineKeyboard
@@ -83,8 +82,6 @@ func GenerateReleasesMessage(
 func GenerateReleasesEditMessage(
 	releases []models.Release,
 ) tgbotapi.InputMediaPhoto {
-	// inlineKeyboard := GenerateInlineReleasesKeyboard(pageCount, releases)
-
 	photoUrl := newReleasesPicUrl
 	for _, release := range releases {
 		if release.CoverUrl.IsValid {
@@ -99,11 +96,9 @@ func GenerateReleasesEditMessage(
 		caption = append(caption, GenerateCaption(release))
 	}
 
-	// photoMsg := tgbotapi.NewPhoto(userId, tgbotapi.FileURL(photoUrl))
 	photoMsg := tgbotapi.NewInputMediaPhoto(tgbotapi.FileURL(photoUrl))
 	photoMsg.Caption = strings.Join(caption, "\n\n")
 	photoMsg.ParseMode = tgbotapi.ModeHTML
-	// photoMsg.ReplyMarkup = inlineKeyboard
 
 	return photoMsg
 }
@@ -116,7 +111,8 @@ func GenerateInlineReleasesKeyboard(
 	inlineButtons := make([]tgbotapi.InlineKeyboardButton, 0, 3)
 
 	if pageCount > 1 {
-		if messageType == models.ReleasesMessage {
+		switch messageType {
+		case models.ReleasesMessage:
 			inlineButtons = append(
 				inlineButtons,
 				tgbotapi.NewInlineKeyboardButtonData(
@@ -124,7 +120,7 @@ func GenerateInlineReleasesKeyboard(
 					PreviousReleasesCallbackText,
 				),
 			)
-		} else if messageType == models.TodayReleasesMessage {
+		case models.TodayReleasesMessage:
 			inlineButtons = append(
 				inlineButtons,
 				tgbotapi.NewInlineKeyboardButtonData(
@@ -141,11 +137,11 @@ func GenerateInlineReleasesKeyboard(
 			NumbersToEmojiMapping[pageCount],
 			PageCountCallbackText,
 		),
-		// tgbotapi.NewInlineKeyboardButtonData(strconv.Itoa(pageCount), PageCountCallbackText),
 	)
 
 	if len(releases) == StandardReleasesLimit {
-		if messageType == models.ReleasesMessage {
+		switch messageType {
+		case models.ReleasesMessage:
 			inlineButtons = append(
 				inlineButtons,
 				tgbotapi.NewInlineKeyboardButtonData(
@@ -153,7 +149,7 @@ func GenerateInlineReleasesKeyboard(
 					NextReleasesCallbackText,
 				),
 			)
-		} else if messageType == models.TodayReleasesMessage {
+		case models.TodayReleasesMessage:
 			inlineButtons = append(
 				inlineButtons,
 				tgbotapi.NewInlineKeyboardButtonData(
