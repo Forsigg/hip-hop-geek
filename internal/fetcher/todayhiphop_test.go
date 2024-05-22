@@ -4,6 +4,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -15,10 +16,15 @@ const htmlBody = `
         <html>
             <body>
                 <h1>hello world!</h1>
-                <a class="post_media_photo_anchor" data-big-photo="https://youfool.com"></a>
-                <div class="caption">
-                    <p>Today in Hip Hop History:</p>
-                    <p>Hip Hop was born 11 August 1973</p>
+                <div class="post text">
+                    <a class="post_media_photo_anchor" data-big-photo="https://youfool.com"></a>
+                    <div class="caption">
+                        <p>Today in Hip Hop History:</p>
+                        <p>Hip Hop was born 11 August 1973</p>
+                    </div>
+                    <div class="date">
+                        <a href="123123">May. 21 2024</a>
+                    </div>
                 </div>
             </body>
         </html>`
@@ -94,84 +100,6 @@ func TestParseEventsResponse(t *testing.T) {
 	})
 }
 
-func TestGetImageUrl(t *testing.T) {
-	isRequestDo = false
-	t.Run("success case", func(t *testing.T) {
-		fetcher := TodayHipHopFetcher{
-			&StubHttpClient{
-				respBodyFull:  htmlBody,
-				respBodyEmpty: "",
-			},
-			nil,
-		}
-		want := "https://youfool.com"
-
-		htmlB := fetcher.getHTML()
-		doc := fetcher.parseResponse(htmlB)
-		got, err := fetcher.getImageUrl(doc)
-
-		assert.NoError(t, err)
-		assert.Equal(t, want, got)
-	})
-
-	isRequestDo = false
-	t.Run("error if image not found", func(t *testing.T) {
-		fetcher := TodayHipHopFetcher{
-			&StubHttpClient{
-				respBodyFull:  "<html><body><h1>Hello world!</h1></body></html>",
-				respBodyEmpty: "",
-			},
-			nil,
-		}
-
-		htmlB := fetcher.getHTML()
-		doc := fetcher.parseResponse(htmlB)
-		got, err := fetcher.getImageUrl(doc)
-
-		assert.ErrorIs(t, err, ErrImageUrlNotFound)
-		assert.Equal(t, "", got)
-	})
-}
-
-func TestGetTextPost(t *testing.T) {
-	isRequestDo = false
-	t.Run("success case", func(t *testing.T) {
-		fetcher := TodayHipHopFetcher{
-			&StubHttpClient{
-				respBodyFull:  htmlBody,
-				respBodyEmpty: "",
-			},
-			nil,
-		}
-		want := "Hip Hop was born 11 August 1973"
-
-		htmlB := fetcher.getHTML()
-		doc := fetcher.parseResponse(htmlB)
-		got, err := fetcher.getEventText(doc)
-
-		assert.NoError(t, err)
-		assert.Equal(t, want, got)
-	})
-
-	isRequestDo = false
-	t.Run("error if text post not found", func(t *testing.T) {
-		fetcher := TodayHipHopFetcher{
-			&StubHttpClient{
-				respBodyFull:  "<html><body><h1>Hello world!</h1></body></html>",
-				respBodyEmpty: "",
-			},
-			nil,
-		}
-
-		htmlB := fetcher.getHTML()
-		doc := fetcher.parseResponse(htmlB)
-		got, err := fetcher.getEventText(doc)
-
-		assert.ErrorIs(t, err, ErrTextPostNotFound)
-		assert.Equal(t, "", got)
-	})
-}
-
 func TestGetPostFromDoc(t *testing.T) {
 	isRequestDo = false
 
@@ -183,14 +111,16 @@ func TestGetPostFromDoc(t *testing.T) {
 			},
 			nil,
 		}
-		want := &models.TodayPost{
-			Text: "Hip Hop was born 11 August 1973",
-			Url:  "https://youfool.com",
+		want := []*models.TodayPost{
+			{
+				Text: "Hip Hop was born 11 August 1973",
+				Url:  "https://youfool.com",
+			},
 		}
 
 		htmlB := fetcher.getHTML()
 		doc := fetcher.parseResponse(htmlB)
-		got, err := fetcher.getPostFromDoc(doc)
+		got, err := fetcher.getPostFromDoc(doc, time.Now().UTC())
 
 		assert.NoError(t, err)
 		assert.Equal(t, want, got)
@@ -205,12 +135,12 @@ func TestGetPostFromDoc(t *testing.T) {
 			},
 			nil,
 		}
-		var want *models.TodayPost
+		var want []*models.TodayPost
 		htmlB := fetcher.getHTML()
 		doc := fetcher.parseResponse(htmlB)
-		got, err := fetcher.getPostFromDoc(doc)
+		got, err := fetcher.getPostFromDoc(doc, time.Now().UTC())
 
-		assert.ErrorIs(t, err, ErrImageUrlNotFound)
+		assert.ErrorIs(t, err, ErrPostsNotFound)
 		assert.Equal(t, want, got)
 	})
 
@@ -228,12 +158,12 @@ func TestGetPostFromDoc(t *testing.T) {
 			},
 			nil,
 		}
-		var want *models.TodayPost
+		var want []*models.TodayPost
 		htmlB := fetcher.getHTML()
 		doc := fetcher.parseResponse(htmlB)
-		got, err := fetcher.getPostFromDoc(doc)
+		got, err := fetcher.getPostFromDoc(doc, time.Now().UTC())
 
-		assert.ErrorIs(t, err, ErrTextPostNotFound)
+		assert.ErrorIs(t, err, ErrPostsNotFound)
 		assert.Equal(t, want, got)
 	})
 }
