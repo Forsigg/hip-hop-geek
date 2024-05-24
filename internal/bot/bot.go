@@ -57,9 +57,6 @@ func (b *TGBot) Start(ctx context.Context, timeout int) {
 
 	updates := b.GetUpdatesChan(updatesConfig)
 
-	// ticker for subs goroutine
-	go b.SendEventAndReleasesEveryday(ctx)
-
 	for {
 		select {
 		case <-ctx.Done():

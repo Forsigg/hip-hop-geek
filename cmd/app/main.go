@@ -80,6 +80,7 @@ func main() {
 	// start goroutines with update releases and tg-bot
 	go updater.StartUploadReleases(ctx, timeForUpdate, []int{2023, 2024}, false)
 	go bot.Start(ctx, 30)
+	go bot.SendEventAndReleasesEveryday(ctx)
 
 	// chan for os signals
 	sigCh := make(chan os.Signal, 1)
