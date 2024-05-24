@@ -4,6 +4,9 @@ services:
   bot:
     restart: always
     build: .
+    environment:
+      - TZ=Asia/Tomsk
+      - BASE_PROJ_DIR=/app
     volumes:
       - ./database:/app/database/
       - ./logs:/app/logs/
