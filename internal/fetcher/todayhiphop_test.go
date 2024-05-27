@@ -12,18 +12,20 @@ import (
 	"hip-hop-geek/internal/models"
 )
 
+var freezeTime time.Time = time.Date(2024, time.August, 11, 0, 0, 0, 0, time.UTC)
+
 const htmlBody = `
         <html>
             <body>
                 <h1>hello world!</h1>
-                <div class="post text">
+                <div class="post">
                     <a class="post_media_photo_anchor" data-big-photo="https://youfool.com"></a>
                     <div class="caption">
                         <p>Today in Hip Hop History:</p>
                         <p>Hip Hop was born 11 August 1973</p>
                     </div>
                     <div class="date">
-                        <a href="123123">May. 21 2024</a>
+                        <a href="123123">Aug. 11 2024</a>
                     </div>
                 </div>
             </body>
@@ -120,7 +122,7 @@ func TestGetPostFromDoc(t *testing.T) {
 
 		htmlB := fetcher.getHTML()
 		doc := fetcher.parseResponse(htmlB)
-		got, err := fetcher.getPostFromDoc(doc, time.Now().UTC())
+		got, err := fetcher.getPostsFromDoc(doc, freezeTime)
 
 		assert.NoError(t, err)
 		assert.Equal(t, want, got)
@@ -138,7 +140,9 @@ func TestGetPostFromDoc(t *testing.T) {
 		var want []*models.TodayPost
 		htmlB := fetcher.getHTML()
 		doc := fetcher.parseResponse(htmlB)
-		got, err := fetcher.getPostFromDoc(doc, time.Now().UTC())
+
+		freezeTime := time.Date(2024, time.August, 11, 0, 0, 0, 0, time.UTC)
+		got, err := fetcher.getPostsFromDoc(doc, freezeTime)
 
 		assert.ErrorIs(t, err, ErrPostsNotFound)
 		assert.Equal(t, want, got)
@@ -161,7 +165,7 @@ func TestGetPostFromDoc(t *testing.T) {
 		var want []*models.TodayPost
 		htmlB := fetcher.getHTML()
 		doc := fetcher.parseResponse(htmlB)
-		got, err := fetcher.getPostFromDoc(doc, time.Now().UTC())
+		got, err := fetcher.getPostsFromDoc(doc, freezeTime)
 
 		assert.ErrorIs(t, err, ErrPostsNotFound)
 		assert.Equal(t, want, got)

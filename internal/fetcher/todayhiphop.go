@@ -29,7 +29,7 @@ const (
 var (
 	ErrImageUrlNotFound = errors.New("image url not found")
 	ErrTextPostNotFound = errors.New("text post not found")
-	ErrPostsNotFound    = errors.New("posts now found")
+	ErrPostsNotFound    = errors.New("posts not found")
 )
 
 type TodayHipHopFetcher struct {
@@ -53,7 +53,7 @@ func (f *TodayHipHopFetcher) Close() {
 func (f *TodayHipHopFetcher) GetTodayEvents() ([]*models.TodayPost, error) {
 	htmlBody := f.getHTML()
 	doc := f.parseResponse(htmlBody)
-	post, err := f.getPostFromDoc(doc, time.Now().UTC())
+	post, err := f.getPostsFromDoc(doc, time.Now().UTC())
 
 	return post, err
 }
@@ -83,7 +83,7 @@ func (f *TodayHipHopFetcher) parseResponse(htmlBody io.ReadCloser) *goquery.Docu
 	return doc
 }
 
-func (f *TodayHipHopFetcher) getPostFromDoc(
+func (f *TodayHipHopFetcher) getPostsFromDoc(
 	doc *goquery.Document,
 	now time.Time,
 ) ([]*models.TodayPost, error) {
@@ -112,17 +112,7 @@ func (f *TodayHipHopFetcher) getPostFromDoc(
 	})
 
 	if len(posts) == 0 {
-		newDate := time.Date(
-			now.Year(),
-			now.Month(),
-			now.Day()-1,
-			0,
-			0,
-			0,
-			0,
-			now.Location(),
-		)
-		return f.getPostFromDoc(doc, newDate)
+		return f.getPostsFromDoc(doc, now.AddDate(0, 0, -1))
 	}
 
 	return posts, nil

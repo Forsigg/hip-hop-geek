@@ -20,15 +20,18 @@ func TestArtistRepo(t *testing.T) {
 		defer removeTestDB(t, db)
 
 		fs := os.DirFS(".")
-		file, _ := fs.Open("test.db")
-		fileStats, _ := file.Stat()
+		file, err := fs.Open("test.db")
+		assert.NoError(t, err, "open error: %s", err)
+
+		fileStats, err := file.Stat()
+		assert.NoError(t, err, "stat error: %s", err)
 		if fileStats.Name() != "test.db" {
 			t.Errorf("test.db not created")
 		}
 	})
 
 	t.Run("check artist creates correct", func(t *testing.T) {
-		expected := &db.ArtistDB{1, "Lil Yachty"}
+		expected := &db.ArtistDB{Id: 1, Name: "Lil Yachty"}
 		db := prepareTestDb(t)
 		defer removeTestDB(t, db)
 
@@ -106,12 +109,16 @@ func TestArtistRepo(t *testing.T) {
 
 func prepareTestDb(t testing.TB) *sqlx.DB {
 	t.Helper()
-	_, err := os.Create("./test.db")
+
+	testDbPath := "./test.db"
+	migrationsDir := "../migrations"
+
+	_, err := os.Create(testDbPath)
 	if err != nil {
 		log.Fatalf("error while creating test db: %s", err)
 	}
 
-	db, err := sqlx.Open("sqlite3", "./test.db")
+	db, err := sqlx.Open("sqlite3", testDbPath)
 	if err != nil {
 		log.Fatalf("error while connecting to test db: %s", err)
 	}
@@ -119,7 +126,7 @@ func prepareTestDb(t testing.TB) *sqlx.DB {
 	// turn off migrations log, but catch error
 	log.SetOutput(io.Discard)
 	goose.SetDialect("sqlite3")
-	err = goose.Up(db.DB, "../migrations/")
+	err = goose.Up(db.DB, migrationsDir)
 	// turn on logs in stdout
 	log.SetOutput(os.Stdout)
 	if err != nil {
