@@ -24,7 +24,7 @@ func (b *TGBot) SendEventAndReleasesEveryday(ctx context.Context) {
 
 	time.Sleep(time.Until(next))
 
-	ticker := time.NewTicker(20 * time.Second)
+	ticker := time.NewTicker(24 * time.Hour)
 	b.SendTodayEventToSubscribers()
 	b.SendTodayReleasesToSubscribers()
 	defer ticker.Stop()
