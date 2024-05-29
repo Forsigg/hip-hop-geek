@@ -83,7 +83,7 @@ func (u *UsersSqliteRepo) Close() {
 }
 
 func (u *UsersSqliteRepo) AddUser(user models.User) error {
-	_, err := u.DB.Exec(addUserStmt, user.Id, user.Username, false)
+	_, err := u.DB.Exec(addUserStmt, user.Id, user.Username, user.IsTodaySubscribe)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed:") {
 			return ErrUserAlreadyExists

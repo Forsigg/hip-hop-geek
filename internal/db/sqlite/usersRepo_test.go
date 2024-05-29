@@ -78,3 +78,65 @@ func TestUserSqliteAddUser(t *testing.T) {
 		assert.Equal(t, userDb.IsTodaySubscribe, true)
 	})
 }
+
+func TestGetAllSubscribers(t *testing.T) {
+	t.Run("success case", func(t *testing.T) {
+		db := prepareTestDb(t)
+		defer removeTestDB(t, db)
+
+		repo := NewUserSqliteRepo(db)
+		user := models.User{
+			Id:               1,
+			Username:         "forsigg",
+			IsTodaySubscribe: true,
+		}
+		repo.AddUser(user)
+
+		users, err := repo.GetAllSubscribers()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(users))
+		assert.Equal(t, user, *users[0])
+	})
+
+	t.Run("if subscribers not found", func(t *testing.T) {
+		db := prepareTestDb(t)
+		defer removeTestDB(t, db)
+
+		repo := NewUserSqliteRepo(db)
+
+		users, err := repo.GetAllSubscribers()
+		assert.ErrorIs(t, err, ErrUserNotFound)
+		assert.Nil(t, users)
+	})
+}
+
+func TestSetUserState(t *testing.T) {
+	t.Run("success case", func(t *testing.T) {
+		db := prepareTestDb(t)
+		defer removeTestDB(t, db)
+
+		repo := NewUserSqliteRepo(db)
+		user := models.User{
+			Id:               1,
+			Username:         "forsigg",
+			IsTodaySubscribe: true,
+		}
+		repo.AddUser(user)
+
+		err := repo.SetUserState(
+			user.Id,
+			models.TodayReleasesMessage,
+			1,
+			5,
+		)
+		assert.NoError(t, err)
+
+		userFromDb, _ := repo.GetUserByUsername(user.Username)
+		assert.Equal(t, userFromDb.TodayReleasesMessageId, int64(1))
+		assert.Equal(t, userFromDb.TodayReleasesPageCount, 5)
+	})
+}

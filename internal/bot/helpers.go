@@ -3,11 +3,13 @@ package bot
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 	"hip-hop-geek/internal/models"
+	"hip-hop-geek/internal/utils"
 )
 
 func GenerateCaption(release models.Release) string {
@@ -131,10 +133,16 @@ func GenerateInlineReleasesKeyboard(
 		}
 	}
 
+	var emojiPage string
+	pageCountStr := strconv.Itoa(pageCount)
+	for _, digit := range pageCountStr {
+		intDigit, _ := strconv.Atoi(string(digit))
+		emojiPage += NumbersToEmojiMapping[intDigit]
+	}
 	inlineButtons = append(
 		inlineButtons,
 		tgbotapi.NewInlineKeyboardButtonData(
-			NumbersToEmojiMapping[pageCount],
+			emojiPage,
 			PageCountCallbackText,
 		),
 	)
@@ -164,4 +172,37 @@ func GenerateInlineReleasesKeyboard(
 		tgbotapi.NewInlineKeyboardRow(inlineButtons...),
 	)
 	return inlineKeyboard
+}
+
+func GenerateYearByMonthKeyboard(
+	year int,
+) tgbotapi.InlineKeyboardMarkup {
+	buttons := make([]tgbotapi.InlineKeyboardButton, 0, 12)
+
+	for monthStr, monthInt := range utils.AllMonthsMapping {
+		log.Println(monthStr)
+		log.Println(monthInt)
+		buttons = append(
+			buttons,
+			tgbotapi.NewInlineKeyboardButtonData(
+				monthStr,
+				fmt.Sprintf("%d.%d", year, monthInt),
+			),
+		)
+	}
+
+	return tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			buttons[0:3]...,
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			buttons[3:6]...,
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			buttons[6:9]...,
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			buttons[9:12]...,
+		),
+	)
 }
