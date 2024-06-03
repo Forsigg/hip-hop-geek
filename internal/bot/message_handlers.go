@@ -51,13 +51,13 @@ func (b *TGBot) ReleasesHandler(upd tgbotapi.Update, user *models.User) {
 			log.Fatalf("error while sending photo message: %s", err)
 		}
 		b.Service.SetUserState(user.Id, models.ReleasesMessage, doneMsg.MessageID, pageCount)
-		// b.SetUserState(chatId, int64(doneMsg.MessageID), pageCount)
 		return
 	} else {
+		offset := (pageCount - 1) * StandardReleasesLimit
 		releases := b.Service.GetMonthReleases(
 			now.Year(), now.Month(),
 			StandardReleasesLimit,
-			pageCount*StandardReleasesLimit,
+			offset,
 		)
 		deleteMsg := tgbotapi.NewDeleteMessage(chatId, int(user.ReleasesMessageId))
 		b.Send(deleteMsg)
