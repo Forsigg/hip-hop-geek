@@ -156,7 +156,8 @@ func (u *UsersSqliteRepo) GetAllSubscribers() ([]*models.User, error) {
 
 func (u *UsersSqliteRepo) SetUserState(
 	userId int64,
-	messageType, messageId int,
+	messageType,
+	messageId,
 	pageCount int,
 ) error {
 	var stmt string

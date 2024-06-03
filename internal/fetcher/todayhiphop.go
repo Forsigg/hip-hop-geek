@@ -21,7 +21,7 @@ const (
 	divPostSelector               = "div.post"
 	dateLinkSelector              = "div.date>a"
 
-	dateLayout = "Jan. 02 2006"
+	dateLayout = "Jan. 2 2006"
 
 	twoDaysMinutes = float64((60 * 24) * 2)
 )
@@ -96,7 +96,7 @@ func (f *TodayHipHopFetcher) getPostsFromDoc(
 		date := s.Find(dateLinkSelector).Text()
 		tt, err := time.Parse(dateLayout, date)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("error while parsing datetime from today events: %v", err)
 		}
 
 		if tt.Month() == now.Month() && tt.Day() == now.Day() && tt.Year() == now.Year() {

@@ -203,3 +203,136 @@ func TestGetReleasesByMonth(t *testing.T) {
 		assert.Equal(t, got[1].Title, "Another Release")
 	})
 }
+
+func TestGetReleasesByYear(t *testing.T) {
+	t.Run("success case", func(t *testing.T) {
+		db := prepareTestDb(t)
+		defer removeTestDB(t, db)
+		releases := []models.Release{
+			{
+				1,
+				models.Artist{"21 Savage"},
+				"American Dream",
+				models.Album,
+				types.NewCustomDate(2024, time.January, 12),
+				models.CoverUrl{},
+			},
+			{
+				2,
+				models.Artist{"Drake"},
+				"Another Release",
+				models.Album,
+				types.NewCustomDate(2024, time.January, 20),
+				models.CoverUrl{},
+			},
+			{
+				3,
+				models.Artist{"Eminem"},
+				"Some Release",
+				models.Album,
+				types.NewCustomDate(2023, time.March, 1),
+				models.CoverUrl{},
+			},
+		}
+		artistRepo := NewArtistSqliteRepo(db)
+		releaseRepo := NewReleaseSqliteRepo(db)
+
+		for _, release := range releases {
+			artistId, _ := artistRepo.AddArtist(release.Artist.Name)
+			releaseRepo.AddRelease(release, artistId)
+		}
+
+		got, err := releaseRepo.GetReleasesByYear(2024, 10, 0)
+		assert.NoError(t, err, "error didn't expected")
+		assert.Equal(t, 2, len(got))
+		assert.Equal(t, got[0].Title, "American Dream")
+		assert.Equal(t, got[1].Title, "Another Release")
+	})
+
+	t.Run("not found releases in 2023", func(t *testing.T) {
+		db := prepareTestDb(t)
+		defer removeTestDB(t, db)
+		releases := []models.Release{
+			{
+				1,
+				models.Artist{"21 Savage"},
+				"American Dream",
+				models.Album,
+				types.NewCustomDate(2024, time.January, 12),
+				models.CoverUrl{},
+			},
+			{
+				2,
+				models.Artist{"Drake"},
+				"Another Release",
+				models.Album,
+				types.NewCustomDate(2024, time.January, 20),
+				models.CoverUrl{},
+			},
+		}
+		artistRepo := NewArtistSqliteRepo(db)
+		releaseRepo := NewReleaseSqliteRepo(db)
+
+		for _, release := range releases {
+			artistId, _ := artistRepo.AddArtist(release.Artist.Name)
+			releaseRepo.AddRelease(release, artistId)
+		}
+
+		got, err := releaseRepo.GetReleasesByYear(2023, 10, 0)
+		assert.ErrorIs(t, err, ErrReleasesNotFound)
+		assert.Nil(t, got)
+	})
+}
+
+func TestGetReleasesWithoutCover(t *testing.T) {
+	t.Run("we have cover in database", func(t *testing.T) {
+		db := prepareTestDb(t)
+		defer removeTestDB(t, db)
+		release := models.Release{
+			1,
+			models.Artist{"21 Savage"},
+			"American Dream",
+			models.Album,
+			types.NewCustomDate(2024, time.January, 12),
+			models.CoverUrl{},
+		}
+
+		releaseRepo := NewReleaseSqliteRepo(db)
+		artistRepo := NewArtistSqliteRepo(db)
+
+		artistId, _ := artistRepo.AddArtist(release.Artist.Name)
+		releaseRepo.AddRelease(release, artistId)
+
+		got, err := releaseRepo.GetReleasesWithoutCover()
+		assert.NoError(t, err, "error didn't expected")
+		assert.Equal(t, 1, len(got))
+		assert.Equal(t, got[0].Title, "American Dream")
+		assert.Equal(t, got[0].CoverUrl, "")
+	})
+
+	t.Run("all releases with cover", func(t *testing.T) {
+		db := prepareTestDb(t)
+		defer removeTestDB(t, db)
+		release := models.Release{
+			1,
+			models.Artist{"21 Savage"},
+			"American Dream",
+			models.Album,
+			types.NewCustomDate(2024, time.January, 12),
+			models.CoverUrl{
+				Value:   "https://cover.com",
+				IsValid: true,
+			},
+		}
+
+		releaseRepo := NewReleaseSqliteRepo(db)
+		artistRepo := NewArtistSqliteRepo(db)
+
+		artistId, _ := artistRepo.AddArtist(release.Artist.Name)
+		releaseRepo.AddRelease(release, artistId)
+
+		got, err := releaseRepo.GetReleasesWithoutCover()
+		assert.ErrorIs(t, err, ErrReleasesNotFound)
+		assert.Nil(t, got)
+	})
+}
