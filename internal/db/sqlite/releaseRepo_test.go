@@ -336,3 +336,34 @@ func TestGetReleasesWithoutCover(t *testing.T) {
 		assert.Nil(t, got)
 	})
 }
+
+func TestGetReleasesByDay(t *testing.T) {
+	t.Run("sucess case", func(t *testing.T) {
+		db := prepareTestDb(t)
+		defer removeTestDB(t, db)
+
+		release := models.Release{
+			1,
+			models.Artist{"21 Savage"},
+			"American Dream",
+			models.Album,
+			types.NewCustomDate(2024, time.January, 12),
+			models.CoverUrl{
+				Value:   "https://cover.com",
+				IsValid: true,
+			},
+		}
+
+		artistRepo := NewArtistSqliteRepo(db)
+		releaseRepo := NewReleaseSqliteRepo(db)
+
+		artistId, _ := artistRepo.AddArtist(release.Artist.Name)
+		releaseRepo.AddRelease(release, artistId)
+
+		got, err := releaseRepo.GetReleasesByDay(2024, time.January, 12, 10, 0)
+
+		assert.NoError(t, err)
+		assert.Equal(t, len(got), 1)
+		assert.Equal(t, "American Dream", got[0].Title)
+	})
+}
