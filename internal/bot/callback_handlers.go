@@ -35,19 +35,20 @@ func (b *TGBot) PreviousReleasesCallbackHandler(
 		log.Fatalf("cant get previous page - its 1")
 	}
 
+	offset := (pageCount - 1) * StandardReleasesLimit
 	switch messageType {
 	case models.ReleasesMessage:
 		releases = b.Service.GetMonthReleases(
 			now.Year(), now.Month(),
 			StandardReleasesLimit,
-			pageCount*StandardReleasesLimit,
+			offset,
 		)
 		msgId = user.ReleasesMessageId
 	case models.TodayReleasesMessage:
 		releases = b.Service.GetReleasesByDay(
 			now.Year(), now.Month(), now.Day(),
 			StandardReleasesLimit,
-			pageCount*StandardReleasesLimit,
+			offset,
 		)
 		msgId = user.TodayReleasesMessageId
 	}
@@ -91,19 +92,20 @@ func (b *TGBot) NextReleasesCallbackHandler(
 	}
 
 	pageCount = pageCount + 1
+	offset := (pageCount - 1) * StandardReleasesLimit
 
 	switch messageType {
 	case models.ReleasesMessage:
 		releases = b.Service.GetMonthReleases(
 			now.Year(), now.Month(),
 			StandardReleasesLimit,
-			pageCount*StandardReleasesLimit,
+			offset,
 		)
 	case models.TodayReleasesMessage:
 		releases = b.Service.GetReleasesByDay(
 			now.Year(), now.Month(), now.Day(),
 			StandardReleasesLimit,
-			pageCount*StandardReleasesLimit,
+			offset,
 		)
 	}
 
