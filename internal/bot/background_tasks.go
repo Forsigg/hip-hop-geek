@@ -13,8 +13,8 @@ func (b *TGBot) SendEventAndReleasesEveryday(ctx context.Context) {
 	send_hour, _ := strconv.Atoi(os.Getenv("SEND_SUBS_HOUR"))
 	send_minute, _ := strconv.Atoi(os.Getenv("SEND_SUBS_MINUTE"))
 	next := time.Date(now.Year(), now.Month(), now.Day(), send_hour, send_minute, 0, 0, time.Local)
-	
-  if now.After(next) {
+
+	if now.After(next) {
 		next = next.Add(24 * time.Hour)
 	}
 	log.Printf("next send to subscribers: %d:%2d %2d.%2d.%d",

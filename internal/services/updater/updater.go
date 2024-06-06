@@ -71,6 +71,12 @@ func (u *Updater) StartUploadReleases(
 	log.Println("start updater on timer")
 	ticker := time.NewTicker(timeToUpdate)
 
+	// sleep at first run
+	time.Sleep(30 * time.Second)
+
+	u.RefreshReleases(years)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ticker.C:
