@@ -81,7 +81,7 @@ func (b *TGBot) TodayEventHandler(chatId int64) {
 
 	for _, event := range events {
 		msg.File = tgbotapi.FileURL(event.Url)
-		msg.Caption = fmt.Sprintf("%s\n%s", "Today in Hip Hop Hisory:", event.Text)
+		msg.Caption = fmt.Sprintf("%s\n%s", "Today in Hip Hop History:", event.Text)
 
 		b.mustSend(msg)
 
