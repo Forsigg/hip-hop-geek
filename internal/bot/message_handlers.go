@@ -12,6 +12,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 	"hip-hop-geek/internal/db/sqlite"
+	"hip-hop-geek/internal/fetcher"
 	"hip-hop-geek/internal/models"
 )
 
@@ -76,7 +77,13 @@ func (b *TGBot) TodayEventHandler(chatId int64) {
 	msg := tgbotapi.NewPhoto(chatId, nil)
 	events, err := b.Service.GetTodayEvents()
 	if err != nil {
+		log.Printf("error while getting today events: %s", err)
+		if errors.Is(err, fetcher.ErrPostsNotFound) {
+			b.mustSend(tgbotapi.NewMessage(int64(chatId), ErrorPostsNotFound))
+			return
+		}
 		b.mustSend(tgbotapi.NewMessage(int64(chatId), ErrorUserMessage))
+		return
 	}
 
 	for _, event := range events {

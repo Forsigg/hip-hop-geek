@@ -4,6 +4,7 @@ const (
 	// MESSAGES
 	ErrorAdminMessage               = "Произошла ошибка: %s"
 	ErrorUserMessage                = "Во время обработки сообщения произошла ошибка на сервере."
+	ErrorPostsNotFound              = "Сегодня в хип хопе не происходило никаких событий"
 	SuccessSubscribeMessage         = "Вы успешно подписались на ежедневную рассылку истории Хип Хопа."
 	SuccessUnsubscribeMessage       = "Вы успешно отписались от ежедневной рассылки  истории Хип Хопа."
 	CheckSubscribeMessage           = "Ваша подписка %s"
